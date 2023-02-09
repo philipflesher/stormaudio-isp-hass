@@ -1,0 +1,37 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Device is already configured",
+            "unknown": "Unexpected error"
+        },
+        "error": {
+            "cannot_connect": "Failed to connect to provided hostname",
+            "invalid_host": "Invalid hostname",
+            "unknown": "Unexpected error"
+        },
+        "step": {
+            "init": {
+                "title": "Add Storm Audio ISP",
+                "description": "Connect to an ISP by entering the hostname or IP address of its telnet interface.",
+                "data": {
+                    "host": "Host"
+                },
+                "data_description": {
+                    "host": "hostname or IP address of telnet interface"
+                }
+            },
+            "identifiers": {
+                "title": "Set identifiers for Storm Audio ISP",
+                "description": "Set the name and unique ID for this ISP",
+                "data": {
+                    "unique_id": "Unique ID",
+                    "name": "Name"
+                },
+                "data_description": {
+                    "unique_id": "user-specified unique ID for the device; must be globally unique",
+                    "name": "name of the device"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,303 @@
+"""Main integration"""
+
+from __future__ import annotations
+import asyncio
+from decimal import Decimal
+import logging
+import voluptuous as vol
+
+from homeassistant.components.media_player import (
+    PLATFORM_SCHEMA,
+    MediaPlayerDeviceClass,
+    MediaPlayerEntity,
+    MediaPlayerEntityFeature,
+    MediaPlayerState,
+)
+
+from homeassistant.const import CONF_HOST, CONF_NAME
+from homeassistant.core import callback, HomeAssistant
+from homeassistant.exceptions import PlatformNotReady
+import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.typing import ConfigType
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+    DataUpdateCoordinator,
+)
+
+from stormaudio_isp_telnet.telnet_client import DeviceState, TelnetClient
+from stormaudio_isp_telnet.constants import PowerCommand, ProcessorState
+
+from .const import DOMAIN
+
+_LOGGER = logging.getLogger("stormaudio_isp")
+
+# Validation of user configuration
+PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
+    {vol.Optional(CONF_NAME): cv.string, vol.Required(CONF_HOST): cv.string}
+)
+
+
+def decibels_to_percentage(decibels: Decimal) -> Decimal:
+    """Convert decibels to percentage"""
+    decimal_decibels: Decimal = Decimal(decibels)
+    return (Decimal(10) ** (decimal_decibels / Decimal(10))) * Decimal(100)
+
+
+def percentage_to_decibels(percentage: Decimal) -> Decimal:
+    """Convert percentage to decibels"""
+    decimal_percentage: Decimal = Decimal(percentage)
+    return (decimal_percentage / Decimal(100)).log10() * Decimal(10)
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config: ConfigType,
+    add_entities: AddEntitiesCallback,
+) -> None:
+    """Setup config entry"""
+    is_initial_device_state_set: bool = False
+    wait_on_data: bool = True
+
+    while True:
+        coordinator: StormAudioIspCoordinator = hass.data[DOMAIN][config.entry_id][
+            "coordinator"
+        ]
+
+        if coordinator.connected and coordinator.data is not None:
+            device_state = coordinator.data["device_state"]
+            if (
+                device_state is not None
+                and device_state.brand is not None
+                and device_state.model is not None
+            ):
+                is_initial_device_state_set = True
+
+        if not is_initial_device_state_set and wait_on_data:
+            # Device state doesn't yet have all the initial data required.
+            # Give it a couple more seconds.
+            await asyncio.sleep(2)
+            wait_on_data = False
+        else:
+            break
+
+    if not is_initial_device_state_set:
+        raise PlatformNotReady("Device state not yet fully loaded")
+
+    add_entities([StormAudioIspDevice(coordinator)])
+
+
+class StormAudioIspCoordinator(DataUpdateCoordinator):
+    """Storm Audio ISP data update coordinator."""
+
+    def __init__(self, hass: HomeAssistant, host: str) -> None:
+        """Initialize coordinator."""
+        super().__init__(
+            hass,
+            _LOGGER,
+            # Name of the data. For logging purposes.
+            name="Storm Audio ISP",
+        )
+        self._host: str = host
+        self._telnet_client: TelnetClient = TelnetClient(
+            self._host,
+            async_on_device_state_updated=self._async_on_device_state_updated,
+            async_on_disconnected=self._async_on_disconnected,
+        )
+        self._connected: bool = False
+        self._should_reconnect: bool = False
+        self._connection_task: asyncio.Task = None
+
+    @property
+    def connected(self):
+        """Gets a value indicating whether the underlying connection is established."""
+        return self._connected
+
+    def connect_and_stay_connected(self) -> None:
+        """Connect to the ISP; if the connection is dropped, reconnect indefinitely."""
+        self._should_reconnect = True
+        self._connection_task = asyncio.create_task(self._async_connect())
+
+    async def _async_connect(self):
+        while True:
+            try:
+                await self._telnet_client.async_connect()
+                self._connected = True
+                await self._async_on_device_state_updated()
+                break
+            except ConnectionError:
+                if not self._should_reconnect:
+                    break
+                await asyncio.sleep(2)
+
+    async def _async_on_disconnected(self) -> None:
+        self._connected = False
+        await self._async_on_device_state_updated()
+        if self._should_reconnect:
+            self.connect_and_stay_connected()
+
+    async def async_disconnect(self) -> None:
+        """Disconnect from the ISP."""
+        self._should_reconnect = False
+        if self._connection_task is not None:
+            await self._connection_task
+        await self._telnet_client.async_disconnect()
+
+    async def _async_on_device_state_updated(self) -> None:
+        device_state: DeviceState = self._telnet_client.get_device_state()
+        data = {"device_state": device_state}
+        self.async_set_updated_data(data)
+
+    async def async_set_power_state(self, power_command: PowerCommand):
+        """Set power state (on/off)"""
+        await self._telnet_client.async_set_power_command(power_command)
+
+    async def async_set_input_id(self, input_id: int):
+        """Set input ID"""
+        await self._telnet_client.async_set_input_id(input_id)
+
+    async def async_set_input_zone2_id(self, input_zone2_id: int):
+        """Set input Zone2 ID"""
+        await self._telnet_client.async_set_input_zone2_id(input_zone2_id)
+
+    async def async_set_volume(self, volume_db: Decimal):
+        """Set volume in dB (-100..0)"""
+        await self._telnet_client.async_set_volume(volume_db)
+
+    async def async_set_mute(self, mute: bool):
+        """Set mute (True == muted, False == unmuted)"""
+        await self._telnet_client.async_set_mute(mute)
+
+    async def async_set_preset_id(self, preset_id: int):
+        """Set preset ID"""
+        await self._telnet_client.async_set_preset_id(preset_id)
+
+
+class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
+    """Storm Audio ISP device."""
+
+    _attr_supported_features = (
+        MediaPlayerEntityFeature.VOLUME_MUTE
+        | MediaPlayerEntityFeature.VOLUME_SET
+        | MediaPlayerEntityFeature.VOLUME_STEP
+        | MediaPlayerEntityFeature.TURN_ON
+        | MediaPlayerEntityFeature.TURN_OFF
+        | MediaPlayerEntityFeature.SELECT_SOURCE
+    )
+
+    def __init__(self, coordinator: StormAudioIspCoordinator):
+        """Initialize."""
+        super().__init__(coordinator)
+
+        device_state: DeviceState = coordinator.data["device_state"]
+
+        self._attr_unique_id = coordinator.config_entry.unique_id
+        self._attr_device_class = MediaPlayerDeviceClass.RECEIVER
+        self._attr_icon = "mdi:audio-video"
+        self._attr_name = coordinator.config_entry.title
+
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, self._attr_unique_id)},
+            manufacturer=device_state.brand,
+            model=device_state.model,
+            name=self._attr_name,
+        )
+
+        self._set_state_from_device()
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self._set_state_from_device()
+        self.async_write_ha_state()
+
+    def _set_state_from_device(self):
+        device_state: DeviceState = self.coordinator.data["device_state"]
+        self._attr_available = self.coordinator.connected
+
+        if device_state is not None:
+            # on/standby state
+            self._attr_state = (
+                MediaPlayerState.ON
+                if device_state.processor_state == ProcessorState.ON
+                else MediaPlayerState.OFF
+            )
+
+            # inputs
+            self._inputs = device_state.inputs
+            self._input_id_to_input_name = dict(
+                map(lambda i: (i.id, i.name), self._inputs)
+            )
+            self._input_name_to_input_id = {
+                v: k for k, v in self._input_id_to_input_name.items()
+            }
+            self._attr_source_list = list(self._input_name_to_input_id.keys())
+
+            # selected input
+            self._attr_source = self._input_id_to_input_name[device_state.input_id]
+
+            # volume level
+            decimal_volume_db: Decimal = device_state.volume_db
+            self._attr_volume_level = float(
+                decibels_to_percentage(decimal_volume_db) / Decimal(100)
+            )
+
+            self._attr_is_volume_muted = device_state.mute
+
+    async def async_select_source(self, source: str) -> None:
+        """Set input source."""
+        if (
+            self._input_name_to_input_id is None
+            or source not in self._input_name_to_input_id
+        ):
+            return
+
+        await self.coordinator.async_set_input_id(self._input_name_to_input_id[source])
+        self._attr_source = source
+        self.async_write_ha_state()
+
+    async def async_turn_on(self) -> None:
+        """Turn on."""
+        await self.coordinator.async_set_power_state(PowerCommand.ON)
+        # Don't set any local state; rely on data received to update
+
+    async def async_turn_off(self) -> None:
+        """Turn off."""
+        await self.coordinator.async_set_power_state(PowerCommand.OFF)
+        # Don't set any local state; rely on data received to update
+
+    async def async_mute_volume(self, mute: bool) -> None:
+        """Mute (true) or unmute (false)."""
+        await self.coordinator.async_set_mute(mute)
+        self._attr_is_volume_muted = mute
+        self.async_write_ha_state()
+
+    async def async_set_volume_level(self, volume: float) -> None:
+        """Set volume level, range 0..1."""
+        if volume < 0.0 or volume > 1.0:
+            return
+
+        rounded_volume = round(volume, 2)
+
+        decimal_volume_db: Decimal
+        if rounded_volume >= 1.0:
+            decimal_volume_db = Decimal(0)
+        elif rounded_volume <= 0.0:
+            decimal_volume_db = Decimal(-100)
+        else:
+            decimal_volume_db = percentage_to_decibels(
+                Decimal(rounded_volume) * Decimal(100)
+            )
+
+        await self.coordinator.async_set_volume(decimal_volume_db)
+        self._attr_volume_level = volume
+        self.async_write_ha_state()
+
+    async def async_volume_up(self) -> None:
+        """Volume step up."""
+        await self.async_set_volume_level(min(1.0, self._attr_volume_level + 0.05))
+
+    async def async_volume_down(self) -> None:
+        """Volume step down."""
+        await self.async_set_volume_level(max(0.0, self._attr_volume_level - 0.05))

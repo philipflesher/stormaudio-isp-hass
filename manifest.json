@@ -1,0 +1,12 @@
+{
+    "domain": "stormaudio_isp",
+    "name": "Storm Audio ISP",
+    "dependencies": [],
+    "after_dependencies": [],
+    "requirements": [
+        "stormaudio-isp-telnet @ git+https://github.com/philipflesher/stormaudio-isp-telnet-py@main"
+    ],
+    "iot_class": "local_push",
+    "version": "0.1.0",
+    "config_flow": true
+}
