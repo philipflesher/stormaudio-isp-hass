@@ -39,16 +39,35 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 )
 
 
-def decibels_to_percentage(decibels: Decimal) -> Decimal:
-    """Convert decibels to percentage"""
-    decimal_decibels: Decimal = Decimal(decibels)
-    return (Decimal(10) ** (decimal_decibels / Decimal(10))) * Decimal(100)
+ZERO = Decimal(0)
+ONE = Decimal(1)
+ONE_HUNDRED = Decimal(100)
+
+volume_control_decibel_range: Decimal = Decimal(60)
+log_a: Decimal = Decimal(1) / (
+    Decimal(10) ** (volume_control_decibel_range / Decimal(20))
+)
+log_b: Decimal = (Decimal(1) / Decimal(log_a)).ln()
 
 
-def percentage_to_decibels(percentage: Decimal) -> Decimal:
-    """Convert percentage to decibels"""
-    decimal_percentage: Decimal = Decimal(percentage)
-    return (decimal_percentage / Decimal(100)).log10() * Decimal(10)
+def volume_level_to_decibels(volume_level: Decimal) -> Decimal:
+    """Convert volume level (0..1) to decibels (-60..0 dB)"""
+    if volume_level <= ZERO:
+        return ONE_HUNDRED
+    elif volume_level >= ONE:
+        return ZERO
+    x = log_a * (log_b * volume_level).exp()
+    return Decimal(20) * x.log10()
+
+
+def decibels_to_volume_level(decibels: Decimal) -> Decimal:
+    """Convert decibels (-60..0 dB) to volume level (0..1)"""
+    if decibels <= -volume_control_decibel_range:
+        return ZERO
+    elif decibels >= ZERO:
+        return ONE
+    x = 10 ** (decibels / Decimal(20))
+    return (x / log_a).ln() / log_b
 
 
 async def async_setup_entry(
@@ -239,9 +258,7 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
 
             # volume level
             decimal_volume_db: Decimal = device_state.volume_db
-            self._attr_volume_level = float(
-                decibels_to_percentage(decimal_volume_db) / Decimal(100)
-            )
+            self._attr_volume_level = float(decibels_to_volume_level(decimal_volume_db))
 
             self._attr_is_volume_muted = device_state.mute
 
@@ -278,17 +295,8 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
         if volume < 0.0 or volume > 1.0:
             return
 
-        rounded_volume = round(volume, 2)
-
-        decimal_volume_db: Decimal
-        if rounded_volume >= 1.0:
-            decimal_volume_db = Decimal(0)
-        elif rounded_volume <= 0.0:
-            decimal_volume_db = Decimal(-100)
-        else:
-            decimal_volume_db = percentage_to_decibels(
-                Decimal(rounded_volume) * Decimal(100)
-            )
+        rounded_volume: Decimal = round(Decimal(volume), 2)
+        decimal_volume_db: Decimal = volume_level_to_decibels(rounded_volume)
 
         await self.coordinator.async_set_volume(decimal_volume_db)
         self._attr_volume_level = volume
