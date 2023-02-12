@@ -259,7 +259,8 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
             # on/off state
             self._attr_state = (
                 MediaPlayerState.ON
-                if device_state.processor_state == ProcessorState.ON
+                if device_state.processor_state
+                in [ProcessorState.ON, ProcessorState.INITIALIZING]
                 else MediaPlayerState.OFF
             )
 
