@@ -29,7 +29,11 @@ from homeassistant.helpers.update_coordinator import (
 from stormaudio_isp_telnet.telnet_client import DeviceState, TelnetClient
 from stormaudio_isp_telnet.constants import PowerCommand, ProcessorState
 
-from .const import DOMAIN
+from .const import (
+    ATTR_DETAILED_STATE,
+    ATTR_SOURCE_ZONE2,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger("stormaudio_isp")
 
@@ -54,7 +58,7 @@ def volume_level_to_decibels(volume_level: Decimal) -> Decimal:
     """Convert volume level (0..1) to decibels (-60..0 dB)"""
     if volume_level <= ZERO:
         return ONE_HUNDRED
-    elif volume_level >= ONE:
+    if volume_level >= ONE:
         return ZERO
     x = log_a * (log_b * volume_level).exp()
     return Decimal(20) * x.log10()
@@ -64,7 +68,7 @@ def decibels_to_volume_level(decibels: Decimal) -> Decimal:
     """Convert decibels (-60..0 dB) to volume level (0..1)"""
     if decibels <= -volume_control_decibel_range:
         return ZERO
-    elif decibels >= ZERO:
+    if decibels >= ZERO:
         return ONE
     x = 10 ** (decibels / Decimal(20))
     return (x / log_a).ln() / log_b
@@ -203,7 +207,23 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
         | MediaPlayerEntityFeature.TURN_ON
         | MediaPlayerEntityFeature.TURN_OFF
         | MediaPlayerEntityFeature.SELECT_SOURCE
+        | MediaPlayerEntityFeature.SELECT_SOUND_MODE
     )
+
+    _attr_extra_state_attributes = {
+        ATTR_DETAILED_STATE: None,
+        ATTR_SOURCE_ZONE2: None,
+    }
+
+    @property
+    def detailed_state(self) -> str | None:
+        """Return detailed state of the processor: 'on', 'off', 'initializing', or 'shutting down'."""
+        return self._attr_extra_state_attributes[ATTR_DETAILED_STATE]
+
+    @property
+    def source_zone2(self) -> str | None:
+        """Name of the current input source for Zone2."""
+        return self._attr_extra_state_attributes[ATTR_SOURCE_ZONE2]
 
     def __init__(self, coordinator: StormAudioIspCoordinator):
         """Initialize."""
@@ -236,11 +256,24 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
         self._attr_available = self.coordinator.connected
 
         if device_state is not None:
-            # on/standby state
+            # on/off state
             self._attr_state = (
                 MediaPlayerState.ON
                 if device_state.processor_state == ProcessorState.ON
                 else MediaPlayerState.OFF
+            )
+
+            # detailed processor state
+            self._attr_extra_state_attributes[ATTR_DETAILED_STATE] = (
+                "on"
+                if device_state.processor_state == ProcessorState.ON
+                else "off"
+                if device_state.processor_state == ProcessorState.OFF
+                else "initializing"
+                if device_state.processor_state == ProcessorState.INITIALIZING
+                else "shutting down"
+                if device_state.processor_state == ProcessorState.SHUTTING_DOWN
+                else None
             )
 
             # inputs
@@ -254,7 +287,42 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
             self._attr_source_list = list(self._input_name_to_input_id.keys())
 
             # selected input
-            self._attr_source = self._input_id_to_input_name[device_state.input_id]
+            self._attr_source = None
+            if (
+                self._input_id_to_input_name is not None
+                and device_state.input_id in self._input_id_to_input_name
+            ):
+                self._attr_source = self._input_id_to_input_name[device_state.input_id]
+
+            # selected Zone2 input
+            self._attr_extra_state_attributes[ATTR_SOURCE_ZONE2] = None
+            if (
+                self._input_id_to_input_name is not None
+                and device_state.input_zone2_id in self._input_id_to_input_name
+            ):
+                self._attr_extra_state_attributes[
+                    ATTR_SOURCE_ZONE2
+                ] = self._input_id_to_input_name[device_state.input_zone2_id]
+
+            # presets
+            self._presets = device_state.presets
+            self._preset_id_to_preset_name = dict(
+                map(lambda i: (i.id, i.name), self._presets)
+            )
+            self._preset_name_to_preset_id = {
+                v: k for k, v in self._preset_id_to_preset_name.items()
+            }
+            self._attr_sound_mode_list = list(self._preset_name_to_preset_id.keys())
+
+            # selected preset
+            self._attr_sound_mode = None
+            if (
+                self._preset_id_to_preset_name is not None
+                and device_state.preset_id in self._preset_id_to_preset_name
+            ):
+                self._attr_sound_mode = self._preset_id_to_preset_name[
+                    device_state.preset_id
+                ]
 
             # volume level
             decimal_volume_db: Decimal = device_state.volume_db
@@ -272,6 +340,35 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
 
         await self.coordinator.async_set_input_id(self._input_name_to_input_id[source])
         self._attr_source = source
+        self.async_write_ha_state()
+
+    async def async_select_source_zone2(self, source: str) -> None:
+        """Set input source for Zone2."""
+        if self._input_name_to_input_id is None:
+            return
+
+        source_id: int | None = (
+            self._input_name_to_input_id[source]
+            if source in self._input_name_to_input_id
+            else 0
+        )
+
+        await self.coordinator.async_set_input_zone2_id(source_id)
+        self._attr_extra_state_attributes[ATTR_SOURCE_ZONE2] = source
+        self.async_write_ha_state()
+
+    async def async_select_sound_mode(self, sound_mode: str) -> None:
+        """Set sound mode."""
+        if (
+            self._preset_name_to_preset_id is None
+            or sound_mode not in self._preset_name_to_preset_id
+        ):
+            return
+
+        await self.coordinator.async_set_preset_id(
+            self._preset_name_to_preset_id[sound_mode]
+        )
+        self._attr_sound_mode = sound_mode
         self.async_write_ha_state()
 
     async def async_turn_on(self) -> None:
