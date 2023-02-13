@@ -375,12 +375,15 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
     async def async_turn_on(self) -> None:
         """Turn on."""
         await self.coordinator.async_set_power_state(PowerCommand.ON)
-        # Don't set any local state; rely on data received to update
+        self._attr_state = MediaPlayerState.ON
+        self._attr_extra_state_attributes[ATTR_DETAILED_STATE] = 'initializing'
+        self.async_write_ha_state()
 
     async def async_turn_off(self) -> None:
         """Turn off."""
         await self.coordinator.async_set_power_state(PowerCommand.OFF)
-        # Don't set any local state; rely on data received to update
+        self._attr_state = MediaPlayerState.OFF
+        self._attr_extra_state_attributes[ATTR_DETAILED_STATE] = 'shutting down'
 
     async def async_mute_volume(self, mute: bool) -> None:
         """Mute (true) or unmute (false)."""
