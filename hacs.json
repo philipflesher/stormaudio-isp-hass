@@ -6,7 +6,9 @@
         "US"
     ],
     "domains": [
-        "media_player"
+        "media_player",
+        "number",
+        "select"
     ],
     "hide_default_branch": true
 }

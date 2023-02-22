@@ -4,7 +4,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.reload import async_setup_reload_service
 
-from .media_player import StormAudioIspCoordinator
+from .coordinator import StormAudioIspCoordinator
 
 from .const import DOMAIN, PLATFORMS
 
