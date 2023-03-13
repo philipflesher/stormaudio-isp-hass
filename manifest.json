@@ -4,9 +4,9 @@
     "dependencies": [],
     "after_dependencies": [],
     "requirements": [
-        "stormaudio-isp-telnet @ git+https://github.com/philipflesher/stormaudio-isp-telnet-py@deba78d7c3b052a836543abfa2610e3d7be03e74"
+        "stormaudio-isp-telnet @ git+https://github.com/philipflesher/stormaudio-isp-telnet-py@7bb7992e111183e42537ecfb7bec6468ca24b050"
     ],
     "iot_class": "local_push",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "config_flow": true
 }
