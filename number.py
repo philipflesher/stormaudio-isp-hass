@@ -88,7 +88,7 @@ class StormAudioIspVolumeNumber(CoordinatorEntity, NumberEntity):
         device_state: DeviceState = self.coordinator.data["device_state"]
         self._attr_available = self.coordinator.connected
 
-        if device_state is not None:
+        if device_state is not None and device_state.volume_db is not None:
             self._attr_available = device_state.processor_state in [
                 ProcessorState.ON,
                 ProcessorState.INITIALIZING,

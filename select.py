@@ -48,6 +48,10 @@ async def async_setup_entry(
                 f"{device_unique_id}_source",
                 f"{device_name} Source",
                 device_info,
+                lambda device_state: (
+                    device_state.inputs is not None
+                    and device_state.input_id is not None
+                ),
                 lambda device_state: map(
                     lambda i: (i.id, i.name),
                     device_state.inputs,
@@ -62,6 +66,10 @@ async def async_setup_entry(
                 f"{device_unique_id}_source_zone2",
                 f"{device_name} Source (Zone 2)",
                 device_info,
+                lambda device_state: (
+                    device_state.inputs is not None
+                    and device_state.input_zone2_id is not None
+                ),
                 lambda device_state: itertools.chain(
                     map(
                         lambda i: (i.id, i.name),
@@ -80,6 +88,10 @@ async def async_setup_entry(
                 f"{device_unique_id}_preset",
                 f"{device_name} Preset",
                 device_info,
+                lambda device_state: (
+                    device_state.presets is not None
+                    and device_state.preset_id is not None
+                ),
                 lambda device_state: map(
                     lambda i: (i.id, i.name),
                     device_state.presets,
@@ -102,6 +114,7 @@ class StormAudioIspSelect(CoordinatorEntity, SelectEntity):
         unique_id: str,
         name: str,
         parent_device_info: DeviceInfo,
+        is_data_available_fn,
         get_id_name_map_fn,
         get_current_id_fn,
         async_set_current_id_fn,
@@ -117,6 +130,7 @@ class StormAudioIspSelect(CoordinatorEntity, SelectEntity):
         self._attr_name = name
 
         self._attr_device_info = parent_device_info
+        self._is_data_available_fn = is_data_available_fn
         self._get_id_name_map_fn = get_id_name_map_fn
         self._get_current_id_fn = get_current_id_fn
         self._async_set_current_id_fn = async_set_current_id_fn
@@ -133,7 +147,7 @@ class StormAudioIspSelect(CoordinatorEntity, SelectEntity):
         device_state: DeviceState = self.coordinator.data["device_state"]
         self._attr_available = self.coordinator.connected
 
-        if device_state is not None:
+        if device_state is not None and self._is_data_available_fn(device_state):
             self._attr_available = device_state.processor_state in [
                 ProcessorState.ON,
                 ProcessorState.INITIALIZING,
