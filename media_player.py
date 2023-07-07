@@ -89,7 +89,7 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
         """Name of the current input source for Zone2."""
         return self._attr_extra_state_attributes[ATTR_SOURCE_ZONE2]
 
-    def __init__(self, coordinator: StormAudioIspCoordinator):
+    def __init__(self, coordinator: StormAudioIspCoordinator) -> None:
         """Initialize."""
         super().__init__(coordinator)
 

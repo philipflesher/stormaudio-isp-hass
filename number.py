@@ -60,7 +60,7 @@ class StormAudioIspVolumeNumber(CoordinatorEntity, NumberEntity):
         unique_id: str,
         name: str,
         parent_device_info: DeviceInfo,
-    ):
+    ) -> None:
         """Initialize."""
         super().__init__(coordinator)
 

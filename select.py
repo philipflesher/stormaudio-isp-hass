@@ -118,7 +118,7 @@ class StormAudioIspSelect(CoordinatorEntity, SelectEntity):
         get_id_name_map_fn,
         get_current_id_fn,
         async_set_current_id_fn,
-    ):
+    ) -> None:
         """Initialize."""
         super().__init__(coordinator)
 
