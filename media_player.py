@@ -141,13 +141,17 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
 
             # inputs
             self._inputs = device_state.inputs
-            self._input_id_to_input_name = dict(
-                map(lambda i: (i.id, i.name), self._inputs)
-            )
-            self._input_name_to_input_id = {
-                v: k for k, v in self._input_id_to_input_name.items()
-            }
-            self._attr_source_list = list(self._input_name_to_input_id.keys())
+            self._input_id_to_input_name = None
+            self._input_name_to_input_id = None
+            self._attr_source_list = None
+            if self._inputs is not None:
+                self._input_id_to_input_name = dict(
+                    map(lambda i: (i.id, i.name), self._inputs)
+                )
+                self._input_name_to_input_id = {
+                    v: k for k, v in self._input_id_to_input_name.items()
+                }
+                self._attr_source_list = list(self._input_name_to_input_id.keys())
 
             # selected input
             self._attr_source = None
@@ -169,13 +173,17 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
 
             # presets
             self._presets = device_state.presets
-            self._preset_id_to_preset_name = dict(
-                map(lambda i: (i.id, i.name), self._presets)
-            )
-            self._preset_name_to_preset_id = {
-                v: k for k, v in self._preset_id_to_preset_name.items()
-            }
-            self._attr_sound_mode_list = list(self._preset_name_to_preset_id.keys())
+            self._preset_id_to_preset_name = None
+            self._preset_name_to_preset_id = None
+            self._attr_sound_mode_list = None
+            if self._presets is not None:
+                self._preset_id_to_preset_name = dict(
+                    map(lambda i: (i.id, i.name), self._presets)
+                )
+                self._preset_name_to_preset_id = {
+                    v: k for k, v in self._preset_id_to_preset_name.items()
+                }
+                self._attr_sound_mode_list = list(self._preset_name_to_preset_id.keys())
 
             # selected preset
             self._attr_sound_mode = None
