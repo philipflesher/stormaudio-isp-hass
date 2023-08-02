@@ -196,10 +196,12 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
                 ]
 
             # volume level
+            self._attr_volume_level = None
             decimal_volume_db: Decimal = device_state.volume_db
-            self._attr_volume_level = float(
-                helpers.decibels_to_volume_level(decimal_volume_db)
-            )
+            if decimal_volume_db is not None:
+                self._attr_volume_level = float(
+                    helpers.decibels_to_volume_level(decimal_volume_db)
+                )
 
             self._attr_is_volume_muted = device_state.mute
 
