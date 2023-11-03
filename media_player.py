@@ -258,6 +258,7 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
         await self.coordinator.async_set_power_state(PowerCommand.OFF)
         self._attr_state = MediaPlayerState.OFF
         self._attr_extra_state_attributes[ATTR_DETAILED_STATE] = "shutting down"
+        self.async_write_ha_state()
 
     async def async_mute_volume(self, mute: bool) -> None:
         """Mute (true) or unmute (false)."""
