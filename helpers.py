@@ -11,7 +11,6 @@ from .coordinator import StormAudioIspCoordinator
 
 ZERO = Decimal(0)
 ONE = Decimal(1)
-ONE_HUNDRED = Decimal(100)
 
 volume_control_decibel_range: Decimal = Decimal(60)
 log_a: Decimal = Decimal(1) / (
@@ -23,7 +22,7 @@ log_b: Decimal = (Decimal(1) / Decimal(log_a)).ln()
 def volume_level_to_decibels(volume_level: Decimal) -> Decimal:
     """Convert volume level (0..1) to decibels (-60..0 dB)"""
     if volume_level <= ZERO:
-        return ONE_HUNDRED
+        return -volume_control_decibel_range
     if volume_level >= ONE:
         return ZERO
     x = log_a * (log_b * volume_level).exp()
