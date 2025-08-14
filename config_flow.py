@@ -1,19 +1,18 @@
-"""Config flow"""
+"""Config flow."""
 
 from __future__ import annotations
+
 import asyncio
-from async_timeout import timeout
+from asyncio import timeout
 import logging
-
-import voluptuous as vol
-
 import re
+
+from stormaudio_isp_telnet.telnet_client import TelnetClient
+import voluptuous as vol
 
 from homeassistant import config_entries, exceptions
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_UNIQUE_ID
 from homeassistant.core import HomeAssistant
-
-from stormaudio_isp_telnet.telnet_client import TelnetClient
 
 from .const import DOMAIN
 
@@ -27,7 +26,7 @@ IDENTIFIERS_DATA_SCHEMA = vol.Schema(
 
 
 def is_valid_hostname(hostname):
-    """Validate hostname string"""
+    """Validate hostname string."""
     if len(hostname) > 255:
         return False
     if hostname[-1] == ".":
@@ -38,6 +37,7 @@ def is_valid_hostname(hostname):
 
 async def async_validate_host(hass: HomeAssistant, data: dict):
     """Validate the user input, allowing us to connect.
+
     Data has the keys from INIT_DATA_SCHEMA with values provided by the user.
     """
     # Validate the data can be used to set up a connection.
@@ -76,6 +76,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
     def __init__(self) -> None:
+        """Init."""
         self._host = None
 
     async def async_step_user(self, user_input=None):

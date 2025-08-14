@@ -1,0 +1,5 @@
+toggle_mute:
+  target:
+    entity:
+      integration: stormaudio_isp
+      domain: media_player

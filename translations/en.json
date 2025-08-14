@@ -1,4 +1,16 @@
 {
+    "services": {
+        "toggle_mute": {
+            "name": "Toggle mute",
+            "description": "Toggle mute on/off.",
+            "fields": {
+                "entity_id": {
+                    "name": "Entity",
+                    "description": "Entity ID of the Storm Audio ISP media player's mute setting to toggle."
+                }
+            }
+        }
+    },
     "config": {
         "abort": {
             "already_configured": "Device is already configured",

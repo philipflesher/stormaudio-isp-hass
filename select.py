@@ -1,13 +1,13 @@
-"""Storm Audio ISP selects"""
+"""Storm Audio ISP selects."""
 
 from __future__ import annotations
+
 import itertools
 
-from homeassistant.components.select import (
-    SelectEntity,
-)
+from stormaudio_isp_telnet.telnet_client import DeviceState, ProcessorState
 
-from homeassistant.core import callback, HomeAssistant
+from homeassistant.components.select import SelectEntity
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType
@@ -17,18 +17,13 @@ from . import helpers
 from .const import DOMAIN
 from .coordinator import StormAudioIspCoordinator
 
-from stormaudio_isp_telnet.telnet_client import (
-    DeviceState,
-    ProcessorState,
-)
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
     config: ConfigType,
     add_entities: AddEntitiesCallback,
 ) -> None:
-    """Setup config entry"""
+    """Setup config entry."""
     coordinator: StormAudioIspCoordinator = hass.data[DOMAIN][config.entry_id][
         "coordinator"
     ]
@@ -52,10 +47,7 @@ async def async_setup_entry(
                     device_state.inputs is not None
                     and device_state.input_id is not None
                 ),
-                lambda device_state: map(
-                    lambda i: (i.id, i.name),
-                    device_state.inputs,
-                ),
+                lambda device_state: ((i.id, i.name) for i in device_state.inputs),
                 lambda device_state: device_state.input_id,
                 lambda coordinator, selected_id: coordinator.async_set_input_id(
                     selected_id
@@ -71,10 +63,7 @@ async def async_setup_entry(
                     and device_state.input_zone2_id is not None
                 ),
                 lambda device_state: itertools.chain(
-                    map(
-                        lambda i: (i.id, i.name),
-                        device_state.inputs,
-                    ),
+                    ((i.id, i.name) for i in device_state.inputs),
                     # add an entry to allow for selection of no-value; maps to ID 0
                     [(0, "")],
                 ),
@@ -92,10 +81,7 @@ async def async_setup_entry(
                     device_state.presets is not None
                     and device_state.preset_id is not None
                 ),
-                lambda device_state: map(
-                    lambda i: (i.id, i.name),
-                    device_state.presets,
-                ),
+                lambda device_state: ((i.id, i.name) for i in device_state.presets),
                 lambda device_state: device_state.preset_id,
                 lambda coordinator, selected_id: coordinator.async_set_preset_id(
                     selected_id

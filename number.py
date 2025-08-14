@@ -1,14 +1,13 @@
-"""Storm Audio ISP numbers"""
+"""Storm Audio ISP numbers."""
 
 from __future__ import annotations
+
 from decimal import Decimal
 
-from homeassistant.components.number import (
-    NumberEntity,
-    NumberMode,
-)
+from stormaudio_isp_telnet.telnet_client import DeviceState, ProcessorState
 
-from homeassistant.core import callback, HomeAssistant
+from homeassistant.components.number import NumberEntity, NumberMode
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType
@@ -18,15 +17,13 @@ from . import helpers
 from .const import DOMAIN
 from .coordinator import StormAudioIspCoordinator
 
-from stormaudio_isp_telnet.telnet_client import DeviceState, ProcessorState
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
     config: ConfigType,
     add_entities: AddEntitiesCallback,
 ) -> None:
-    """Setup config entry"""
+    """Setup config entry."""
     coordinator: StormAudioIspCoordinator = hass.data[DOMAIN][config.entry_id][
         "coordinator"
     ]

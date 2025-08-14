@@ -1,42 +1,34 @@
-"""Storm Audio ISP media players"""
+"""Storm Audio ISP media players."""
 
 from __future__ import annotations
+
 from decimal import Decimal
+
+from stormaudio_isp_telnet.constants import PowerCommand, ProcessorState
+from stormaudio_isp_telnet.telnet_client import DeviceState
 import voluptuous as vol
 
 from homeassistant.components.media_player import (
-    PLATFORM_SCHEMA,
+    PLATFORM_SCHEMA as MEDIA_PLAYER_PLATFORM_SCHEMA,
     MediaPlayerDeviceClass,
     MediaPlayerEntity,
     MediaPlayerEntityFeature,
     MediaPlayerState,
 )
-
 from homeassistant.const import CONF_HOST, CONF_NAME
-from homeassistant.core import callback, HomeAssistant
-from homeassistant.exceptions import PlatformNotReady
-import homeassistant.helpers.config_validation as cv
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-)
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import helpers
-from .const import (
-    ATTR_DETAILED_STATE,
-    ATTR_SOURCE_ZONE2,
-    DOMAIN,
-)
+from .const import ATTR_DETAILED_STATE, ATTR_SOURCE_ZONE2, DOMAIN, SERVICE_TOGGLE_MUTE
 from .coordinator import StormAudioIspCoordinator
 
-from stormaudio_isp_telnet.telnet_client import DeviceState
-from stormaudio_isp_telnet.constants import PowerCommand, ProcessorState
-
-
 # Validation of user configuration
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
+MEDIA_PLAYER_PLATFORM_SCHEMA = MEDIA_PLAYER_PLATFORM_SCHEMA.extend(
     {vol.Optional(CONF_NAME): cv.string, vol.Required(CONF_HOST): cv.string}
 )
 
@@ -46,7 +38,15 @@ async def async_setup_entry(
     config: ConfigType,
     add_entities: AddEntitiesCallback,
 ) -> None:
-    """Setup config entry"""
+    """Setup config entry."""
+    platform = entity_platform.async_get_current_platform()
+
+    platform.async_register_entity_service(
+        SERVICE_TOGGLE_MUTE,
+        None,
+        "async_toggle_mute",
+    )
+
     coordinator: StormAudioIspCoordinator = hass.data[DOMAIN][config.entry_id][
         "coordinator"
     ]
@@ -145,9 +145,7 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
             self._input_name_to_input_id = None
             self._attr_source_list = None
             if self._inputs is not None:
-                self._input_id_to_input_name = dict(
-                    map(lambda i: (i.id, i.name), self._inputs)
-                )
+                self._input_id_to_input_name = {i.id: i.name for i in self._inputs}
                 self._input_name_to_input_id = {
                     v: k for k, v in self._input_id_to_input_name.items()
                 }
@@ -167,9 +165,9 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
                 self._input_id_to_input_name is not None
                 and device_state.input_zone2_id in self._input_id_to_input_name
             ):
-                self._attr_extra_state_attributes[
-                    ATTR_SOURCE_ZONE2
-                ] = self._input_id_to_input_name[device_state.input_zone2_id]
+                self._attr_extra_state_attributes[ATTR_SOURCE_ZONE2] = (
+                    self._input_id_to_input_name[device_state.input_zone2_id]
+                )
 
             # presets
             self._presets = device_state.presets
@@ -177,9 +175,7 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
             self._preset_name_to_preset_id = None
             self._attr_sound_mode_list = None
             if self._presets is not None:
-                self._preset_id_to_preset_name = dict(
-                    map(lambda i: (i.id, i.name), self._presets)
-                )
+                self._preset_id_to_preset_name = {i.id: i.name for i in self._presets}
                 self._preset_name_to_preset_id = {
                     v: k for k, v in self._preset_id_to_preset_name.items()
                 }
@@ -222,11 +218,7 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
         if self._input_name_to_input_id is None:
             return
 
-        source_id: int | None = (
-            self._input_name_to_input_id[source]
-            if source in self._input_name_to_input_id
-            else 0
-        )
+        source_id: int | None = self._input_name_to_input_id.get(source, 0)
 
         await self.coordinator.async_set_input_zone2_id(source_id)
         self._attr_extra_state_attributes[ATTR_SOURCE_ZONE2] = source
@@ -266,6 +258,11 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
         self._attr_is_volume_muted = mute
         self.async_write_ha_state()
 
+    async def async_toggle_mute(self) -> None:
+        """Toggle mute."""
+        await self.coordinator.async_toggle_mute()
+        self.async_write_ha_state()
+
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
         if volume < 0.0 or volume > 1.0:
@@ -280,8 +277,8 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
 
     async def async_volume_up(self) -> None:
         """Volume step up."""
-        await self.async_set_volume_level(min(1.0, self._attr_volume_level + 0.05))
+        await self.async_set_volume_level(min(1.0, self._attr_volume_level + 0.01))
 
     async def async_volume_down(self) -> None:
         """Volume step down."""
-        await self.async_set_volume_level(max(0.0, self._attr_volume_level - 0.05))
+        await self.async_set_volume_level(max(0.0, self._attr_volume_level - 0.01))

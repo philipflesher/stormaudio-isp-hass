@@ -1,16 +1,15 @@
-"""Storm Audio ISP Integration"""
+"""Storm Audio ISP Integration."""
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.reload import async_setup_reload_service
 
-from .coordinator import StormAudioIspCoordinator
-
 from .const import DOMAIN, PLATFORMS
+from .coordinator import StormAudioIspCoordinator
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Setup config entry"""
+    """Setup config entry."""
     await async_setup_reload_service(hass, DOMAIN, PLATFORMS)
 
     host: str = entry.data["host"]
@@ -28,7 +27,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload config entry"""
+    """Unload config entry."""
     coordinator: StormAudioIspCoordinator = hass.data[DOMAIN][entry.entry_id][
         "coordinator"
     ]

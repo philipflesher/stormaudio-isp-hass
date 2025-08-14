@@ -1,18 +1,16 @@
-"""Helper functions"""
+"""Helper functions."""
 
 import asyncio
 from decimal import Decimal
 
-from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import PlatformNotReady
-from homeassistant.helpers.entity import DeviceInfo
 
 from .coordinator import StormAudioIspCoordinator
 
 ZERO = Decimal(0)
 ONE = Decimal(1)
 
-volume_control_decibel_range: Decimal = Decimal(60)
+volume_control_decibel_range: Decimal = Decimal(100)
 log_a: Decimal = Decimal(1) / (
     Decimal(10) ** (volume_control_decibel_range / Decimal(20))
 )
@@ -20,7 +18,7 @@ log_b: Decimal = (Decimal(1) / Decimal(log_a)).ln()
 
 
 def volume_level_to_decibels(volume_level: Decimal) -> Decimal:
-    """Convert volume level (0..1) to decibels (-60..0 dB)"""
+    """Convert volume level (0..1) to decibels (-100..0 dB)."""
     if volume_level <= ZERO:
         return -volume_control_decibel_range
     if volume_level >= ONE:
@@ -30,7 +28,7 @@ def volume_level_to_decibels(volume_level: Decimal) -> Decimal:
 
 
 def decibels_to_volume_level(decibels: Decimal) -> Decimal:
-    """Convert decibels (-60..0 dB) to volume level (0..1)"""
+    """Convert decibels (-100..0 dB) to volume level (0..1)."""
     if decibels <= -volume_control_decibel_range:
         return ZERO
     if decibels >= ZERO:
@@ -42,8 +40,11 @@ def decibels_to_volume_level(decibels: Decimal) -> Decimal:
 async def async_wait_2_seconds_for_initial_device_state_or_raise_platform_not_ready(
     coordinator: StormAudioIspCoordinator,
 ) -> None:
-    """Check for the initial device state in the coordinator's data; if it doesn't exist,
-    wait for it up to 2 seconds; thereafter, raise PlatformNotReady exception"""
+    """Wait for device state from connection, or fail.
+
+    Check for the initial device state in the coordinator's data; if it doesn't exist,
+    wait for it up to 2 seconds; thereafter, raise PlatformNotReady exception
+    """
     wait_on_data: bool = True
     all_state_available: bool = False
 

@@ -1,32 +1,30 @@
-"""Storm Audio ISP data update coordinator"""
+"""Storm Audio ISP data update coordinator."""
 
 from __future__ import annotations
+
 import asyncio
 from decimal import Decimal
 import logging
+
+from stormaudio_isp_telnet.constants import PowerCommand
+from stormaudio_isp_telnet.telnet_client import DeviceState, TelnetClient
 import voluptuous as vol
 
 from homeassistant.components.media_player import (
-    PLATFORM_SCHEMA,
+    PLATFORM_SCHEMA as MEDIA_PLAYER_PLATFORM_SCHEMA,
 )
-
 from homeassistant.const import CONF_HOST, CONF_NAME
 from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
-)
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
-
-from stormaudio_isp_telnet.telnet_client import DeviceState, TelnetClient
-from stormaudio_isp_telnet.constants import PowerCommand
 
 _LOGGER = logging.getLogger("stormaudio_isp")
 
 # Validation of user configuration
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
+MEDIA_PLAYER_PLATFORM_SCHEMA = MEDIA_PLAYER_PLATFORM_SCHEMA.extend(
     {vol.Optional(CONF_NAME): cv.string, vol.Required(CONF_HOST): cv.string}
 )
 
@@ -106,25 +104,29 @@ class StormAudioIspCoordinator(DataUpdateCoordinator):
         self.async_set_updated_data(data)
 
     async def async_set_power_state(self, power_command: PowerCommand):
-        """Set power state (on/off)"""
+        """Set power state (on/off)."""
         await self._telnet_client.async_set_power_command(power_command)
 
     async def async_set_input_id(self, input_id: int):
-        """Set input ID"""
+        """Set input ID."""
         await self._telnet_client.async_set_input_id(input_id)
 
     async def async_set_input_zone2_id(self, input_zone2_id: int):
-        """Set input Zone2 ID"""
+        """Set input Zone2 ID."""
         await self._telnet_client.async_set_input_zone2_id(input_zone2_id)
 
     async def async_set_volume(self, volume_db: Decimal):
-        """Set volume in dB (-100..0)"""
+        """Set volume in dB (-100..0)."""
         await self._telnet_client.async_set_volume(volume_db)
 
     async def async_set_mute(self, mute: bool):
-        """Set mute (True == muted, False == unmuted)"""
+        """Set mute (True == muted, False == unmuted)."""
         await self._telnet_client.async_set_mute(mute)
 
+    async def async_toggle_mute(self):
+        """Toggle mute."""
+        await self._telnet_client.async_toggle_mute()
+
     async def async_set_preset_id(self, preset_id: int):
-        """Set preset ID"""
+        """Set preset ID."""
         await self._telnet_client.async_set_preset_id(preset_id)
