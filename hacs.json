@@ -9,6 +9,7 @@
         "media_player",
         "number",
         "select",
+        "sensor",
         "switch"
     ],
     "hide_default_branch": true
