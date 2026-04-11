@@ -95,7 +95,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors[CONF_HOST] = "cannot_connect"
             except InvalidHost:
                 errors[CONF_HOST] = "invalid_host"
-            except:
+            except Exception:
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
                 raise

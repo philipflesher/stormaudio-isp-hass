@@ -74,24 +74,24 @@ class StormAudioIspDevice(CoordinatorEntity, MediaPlayerEntity):
         | MediaPlayerEntityFeature.SELECT_SOUND_MODE
     )
 
-    _attr_extra_state_attributes = {
-        ATTR_DETAILED_STATE: None,
-        ATTR_SOURCE_ZONE2: None,
-    }
-
     @property
     def detailed_state(self) -> str | None:
         """Return detailed state of the processor: 'on', 'off', 'initializing', or 'shutting down'."""
-        return self._attr_extra_state_attributes[ATTR_DETAILED_STATE]
+        return self._attr_extra_state_attributes.get(ATTR_DETAILED_STATE)
 
     @property
     def source_zone2(self) -> str | None:
         """Name of the current input source for Zone2."""
-        return self._attr_extra_state_attributes[ATTR_SOURCE_ZONE2]
+        return self._attr_extra_state_attributes.get(ATTR_SOURCE_ZONE2)
 
     def __init__(self, coordinator: StormAudioIspCoordinator) -> None:
         """Initialize."""
         super().__init__(coordinator)
+
+        self._attr_extra_state_attributes = {
+            ATTR_DETAILED_STATE: None,
+            ATTR_SOURCE_ZONE2: None,
+        }
 
         device_info: DeviceInfo = coordinator.data["device_info"]
         device_unique_id: str = coordinator.data["device_unique_id"]

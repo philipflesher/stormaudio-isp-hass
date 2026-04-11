@@ -130,3 +130,103 @@ class StormAudioIspCoordinator(DataUpdateCoordinator):
     async def async_set_preset_id(self, preset_id: int):
         """Set preset ID."""
         await self._telnet_client.async_set_preset_id(preset_id)
+
+    # ---- Zone commands ----
+
+    async def async_set_zone_volume(self, zone_id: int, volume_db):
+        """Set zone volume in dB."""
+        await self._telnet_client.async_set_zone_volume(zone_id, volume_db)
+
+    async def async_set_zone_mute(self, zone_id: int, mute: bool):
+        """Set zone mute."""
+        await self._telnet_client.async_set_zone_mute(zone_id, mute)
+
+    async def async_set_zone_eq(self, zone_id: int, enabled: bool):
+        """Set zone EQ on/off."""
+        await self._telnet_client.async_set_zone_eq(zone_id, enabled)
+
+    async def async_set_zone_bass(self, zone_id: int, value: int):
+        """Set zone bass."""
+        await self._telnet_client.async_set_zone_bass(zone_id, value)
+
+    async def async_set_zone_treble(self, zone_id: int, value: int):
+        """Set zone treble."""
+        await self._telnet_client.async_set_zone_treble(zone_id, value)
+
+    async def async_set_zone_loudness(self, zone_id: int, value: int):
+        """Set zone loudness."""
+        await self._telnet_client.async_set_zone_loudness(zone_id, value)
+
+    async def async_set_zone_lipsync(self, zone_id: int, ms: int):
+        """Set zone lipsync delay."""
+        await self._telnet_client.async_set_zone_lipsync(zone_id, ms)
+
+    # ---- Theater audio controls ----
+
+    async def async_set_dim(self, enabled: bool):
+        """Set dim on/off."""
+        await self._telnet_client.async_set_dim(enabled)
+
+    async def async_set_bass(self, value: int):
+        """Set main bass."""
+        await self._telnet_client.async_set_bass(value)
+
+    async def async_set_treble(self, value: int):
+        """Set main treble."""
+        await self._telnet_client.async_set_treble(value)
+
+    async def async_set_brightness(self, value: int):
+        """Set main brightness."""
+        await self._telnet_client.async_set_brightness(value)
+
+    async def async_set_center_enhance(self, value: int):
+        """Set center enhance."""
+        await self._telnet_client.async_set_center_enhance(value)
+
+    async def async_set_surround_enhance(self, value: int):
+        """Set surround enhance."""
+        await self._telnet_client.async_set_surround_enhance(value)
+
+    async def async_set_lfe_enhance(self, value: int):
+        """Set LFE enhance."""
+        await self._telnet_client.async_set_lfe_enhance(value)
+
+    async def async_set_loudness(self, value: int):
+        """Set main loudness."""
+        await self._telnet_client.async_set_loudness(value)
+
+    async def async_set_lipsync(self, value: int):
+        """Set main lipsync."""
+        await self._telnet_client.async_set_lipsync(value)
+
+    async def async_set_surround_mode(self, mode_id: int):
+        """Set surround mode."""
+        await self._telnet_client.async_set_surround_mode(mode_id)
+
+    async def async_set_drc(self, mode: str):
+        """Set DRC mode."""
+        await self._telnet_client.async_set_drc(mode)
+
+    async def async_set_dialog_control(self, value: int):
+        """Set dialog control level."""
+        await self._telnet_client.async_set_dialog_control(value)
+
+    async def async_set_dialog_norm(self, enabled: bool):
+        """Set dialog norm on/off."""
+        await self._telnet_client.async_set_dialog_norm(enabled)
+
+    async def async_set_dolby_mode(self, mode_id: int):
+        """Set Dolby mode."""
+        await self._telnet_client.async_set_dolby_mode(mode_id)
+
+    async def async_set_storm_xt(self, enabled: bool):
+        """Set Storm XT on/off."""
+        await self._telnet_client.async_set_storm_xt(enabled)
+
+    async def async_set_lfe_dim(self, enabled: bool):
+        """Set LFE dim on/off."""
+        await self._telnet_client.async_set_lfe_dim(enabled)
+
+    async def async_set_trigger(self, trigger_id: int, enabled: bool):
+        """Set trigger on/off."""
+        await self._telnet_client.async_set_trigger(trigger_id, enabled)
