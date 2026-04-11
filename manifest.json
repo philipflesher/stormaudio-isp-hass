@@ -7,6 +7,6 @@
         "git+https://github.com/charlesrp1992/stormaudio-isp-telnet-py@v1.0.0#stormaudio_isp_telnet==1.0.0"
     ],
     "iot_class": "local_push",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "config_flow": true
 }
