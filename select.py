@@ -239,10 +239,7 @@ class StormAudioIspSelect(CoordinatorEntity, SelectEntity):
         self._attr_available = self.coordinator.connected
 
         if device_state is not None and self._is_data_available_fn(device_state):
-            self._attr_available = device_state.processor_state in [
-                ProcessorState.ON,
-                ProcessorState.INITIALIZING,
-            ]
+            self._attr_available = device_state.processor_state == ProcessorState.ON
 
             id_name_map = self._get_id_name_map_fn(device_state)
             self._id_to_name = dict(id_name_map)

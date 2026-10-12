@@ -220,10 +220,7 @@ class StormAudioIspMuteSwitch(CoordinatorEntity, SwitchEntity):
         self._attr_available = self.coordinator.connected
 
         if device_state is not None and device_state.volume_db is not None:
-            self._attr_available = device_state.processor_state in [
-                ProcessorState.ON,
-                ProcessorState.INITIALIZING,
-            ]
+            self._attr_available = device_state.processor_state == ProcessorState.ON
 
             self._attr_native_value = device_state.mute
 
@@ -283,10 +280,7 @@ class StormAudioIspSwitch(CoordinatorEntity, SwitchEntity):
         self._attr_available = self.coordinator.connected
 
         if device_state is not None and self._is_available_fn(device_state):
-            self._attr_available = device_state.processor_state in [
-                ProcessorState.ON,
-                ProcessorState.INITIALIZING,
-            ]
+            self._attr_available = device_state.processor_state == ProcessorState.ON
             self._attr_is_on = self._get_value_fn(device_state)
 
     @property

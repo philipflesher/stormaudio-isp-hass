@@ -283,10 +283,7 @@ class StormAudioIspVolumeNumber(CoordinatorEntity, NumberEntity):
         self._attr_available = self.coordinator.connected
 
         if device_state is not None and device_state.volume_db is not None:
-            self._attr_available = device_state.processor_state in [
-                ProcessorState.ON,
-                ProcessorState.INITIALIZING,
-            ]
+            self._attr_available = device_state.processor_state == ProcessorState.ON
 
             decimal_volume_db: Decimal = device_state.volume_db
             fraction_value: float = float(
@@ -356,10 +353,7 @@ class StormAudioIspZoneVolumeNumber(CoordinatorEntity, NumberEntity):
 
         zone = _get_zone(device_state, self._zone_id)
         if zone is not None and zone.volume_db is not None:
-            self._attr_available = device_state.processor_state in [
-                ProcessorState.ON,
-                ProcessorState.INITIALIZING,
-            ]
+            self._attr_available = device_state.processor_state == ProcessorState.ON
 
             decimal_volume_db: Decimal = zone.volume_db
             fraction_value: float = float(
@@ -438,10 +432,7 @@ class StormAudioIspNumber(CoordinatorEntity, NumberEntity):
         self._attr_available = self.coordinator.connected
 
         if device_state is not None and self._is_available_fn(device_state):
-            self._attr_available = device_state.processor_state in [
-                ProcessorState.ON,
-                ProcessorState.INITIALIZING,
-            ]
+            self._attr_available = device_state.processor_state == ProcessorState.ON
             value = self._get_value_fn(device_state)
             if value is not None:
                 self._attr_native_value = float(value)
